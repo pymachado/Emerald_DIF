@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
+/** @title POOL
+    @author Pedro Yuris Machado Leiva
+    @notice EMERALD'S POOL for funding invoices 
+    @custom:company Reserva Food System
+    @custom:addressMumbai 0x551Ac0554d606688CabaC753Cc62EA32f3309551
+*/
+
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract POOL is Ownable {
-  uint256 public constant minimumRangeOfStake = 3;
+  uint256 public minimumRangeOfStake;
   uint256 public liquidity;
   uint256 public minInvesting;
   uint256 public yield;
@@ -46,8 +53,10 @@ contract POOL is Ownable {
   event NEWUSERADDEDATLEDGEROFDEBT (address indexed investor, uint256 indexed index);
   event WITHDRAWAL (address indexed investor, uint256 indexed index);
 
-  constructor(address ERC20) {
+  constructor(address ERC20, uint256 _minInvesting) {
     erc20 = IERC20(ERC20);
+    minInvesting = _minInvesting;
+    minimumRangeOfStake = 3 minutes;
   } 
 
 
@@ -75,6 +84,10 @@ contract POOL is Ownable {
       value = true;
     }
     return value;
+  }
+
+  function set_MinimumRangeOfStake(uint256 _minimumRangeOfStake) external onlyOwner {
+    minimumRangeOfStake = _minimumRangeOfStake * 1 minutes;
   }
 
 
