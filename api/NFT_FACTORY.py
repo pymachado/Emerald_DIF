@@ -232,7 +232,7 @@ class NFT_FACTORY(BLOCKCHAIN_SELECTOR):
 
 
 
-#nftClassMumbai = NFT_FACTORY('build/contracts/NFT_FACTORY.json','0x5673a930Da6dB358E86B532d9d1B3941c5F64Aa3', 'mumbai', 'mumbai')
+nftClassMumbai = NFT_FACTORY('build/contracts/NFT_FACTORY.json','0x5673a930Da6dB358E86B532d9d1B3941c5F64Aa3', 'mumbai', 'mumbai')
 #account = nftClassMumbai.w3.eth.account.create()
 #accountAddress = nftClassMumbai.w3.toChecksumAddress(account.address)
 #accountPK= account.privateKey
@@ -240,8 +240,8 @@ class NFT_FACTORY(BLOCKCHAIN_SELECTOR):
 #print(accountPK)
 
 #print(nftClassMumbai.w3.fromWei(balance, 'ether'))
-#newOwnerAddress= '0xbd91E706bF05497E5E6bfc30Af5e7365a7734056'
-#newOwnerPrivateKey= b'`*\x00\xa0G"x\x06F\xdePOk\xdc\x94\x8e\xe3\xbd\x91D\x8a\x13|\x8c\x94\x04\xbdDNF\xdd\x0e'
+newOwnerAddress= '0xbd91E706bF05497E5E6bfc30Af5e7365a7734056'
+newOwnerPrivateKey= b'`*\x00\xa0G"x\x06F\xdePOk\xdc\x94\x8e\xe3\xbd\x91D\x8a\x13|\x8c\x94\x04\xbdDNF\xdd\x0e'
 #balance = nftClassMumbai.w3.eth.get_balance(newOwnerAddress)
 #print(balance)
 #print(account.address)
@@ -258,15 +258,15 @@ class NFT_FACTORY(BLOCKCHAIN_SELECTOR):
 #print(nftClassMumbai.w3.eth.chain_id)
 #adminAddress = nftClassMumbai.w3.toChecksumAddress('0xD82709678672920A9DcDA17d1B9eE5213E0472e8')
 #adminPrivateKey = nftClassMumbai.w3.toText('0xdc1b2c6a0baf2450ed438ee96747874b1145ce988e919e42d4b3e02626c19f40')
-#data = nftClassMumbai.set_CreateInvoiceLocal(
-#    newOwnerAddress,
-#    newOwnerPrivateKey,
-#    '0x79d2B3b4D0115F92d7970F99684E6f787Eb51275',
-#    'hello world',
-#    'First NFT invoice minted', 
-#    'none',
-#    22,
-#    4)
+data = nftClassMumbai.set_CreateInvoiceLocal(
+    newOwnerAddress,
+    newOwnerPrivateKey,
+    '0x79d2B3b4D0115F92d7970F99684E6f787Eb51275',
+    'hello world',
+    'First NFT invoice minted', 
+    'none',
+    22,
+    14)
 
-#print(data)
+print(data)
 #print(balance)

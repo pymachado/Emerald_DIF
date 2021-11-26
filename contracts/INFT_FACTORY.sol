@@ -5,9 +5,12 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 interface INFT_FACTORY is IERC721 {
   function getData(uint256 tokenId) external view returns(string memory,
-                                                          string memory,
-                                                          string memory,
-                                                          uint256,
-                                                          uint256,
+                                                          uint,
+                                                          uint,
+                                                          int128,
+                                                          int128,
                                                           address);
+
+  function dailyInterestRUSD() external view returns(uint);
+
 }
