@@ -22,9 +22,12 @@ function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure priv
 
 # Pending functions
  note: Pending to develop Withdraw Algorithm with list of withdraw system.
-    1- requestWithdraw() by investor
-    2- transferFunds() by Reserva
-    3- payNFT() by client
+
+1- requestWithdraw() by investor
+
+2- transferFunds() by Reserva
+
+3- payNFT() by client
 
 # NFT_FACTORY Smart Contract
 # Description
