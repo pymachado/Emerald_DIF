@@ -20,58 +20,76 @@ import "./INFT_FACTORY.sol";
 
 contract RUSD is ERC20, Ownable{
   using Address for address;
-
-  address immutable nftFactoryAddress;
-  address immutable vaultNFTAddress;
-  address immutable usdtAddress; 
   
+  uint constant referencePeriod = 30; 
+  uint minimumInvesting;
+  address immutable nftFactoryAddress;
+  address immutable usdtAddress; 
+  uint32 lenghtListOut;
+
   INFT_FACTORY NFT;
   IERC20 USDT;
 
-  uint minimumInvesting;
-
   struct CUSTUMER {
     uint intitialDate;
-    uint endDate;
+    uint requestDate;
+    uint returnDate;
+    uint stakePeriod;
+    uint pendingWithdraw;
     bool locked;
     bool isWithdrawal;
   }
 
-  mapping (address => CUSTUMER) custumers;
+  mapping (address => CUSTUMER) public custumers;
+  // key is investor's numberList and value is requestDate 
+  mapping (uint32 => uint) public numberList;
 
   event NEWDEPOSIT (address indexed recipient, uint amount);
 
-  constructor (uint _minimumInvesting, address _nftFactoryAddress, address _usdtAddress, address _vaultNFTAddress) ERC20("RESERVA USD", "RUSD"){
+  constructor (uint _minimumInvesting, address _nftFactoryAddress, address _usdtAddress) ERC20("RESERVA USD", "RUSD"){
     require(_nftFactoryAddress.isContract() && _nftFactoryAddress != address(0), "POOL: Error");
     require(_usdtAddress.isContract() && _usdtAddress != address(0), "POOL: Error");
-    require(_vaultNFTAddress.isContract() && _vaultNFTAddress != address(0), "POOL: Error");
     nftFactoryAddress = _nftFactoryAddress;
     usdtAddress = _usdtAddress;
-    vaultNFTAddress = _vaultNFTAddress;
     minimumInvesting =  _minimumInvesting;
   }
   /// @dev Before someone call this function, the investor had to approve the current SC
   /// to manage his USDT amount. Important trigger approve function before this
   /// current function will be called.
-  function deposit (address _recipient, uint _amount) external returns (bool) {
+  function deposit (address _investor, uint _amount) external returns (bool) {
     USDT = IERC20(usdtAddress);
-    require(! _recipient.isContract() && _recipient != address(0), "POOL: Error");
+    require(! _investor.isContract() && _investor != address(0), "POOL: Error");
     require(_amount == minimumInvesting, "Pool: The minimum of investing exceed the amount");
-    USDT.transferFrom(_recipient, address(this), _amount);
-    _mint(_recipient, _amount);
-    custumers[_recipient].intitialDate = block.timestamp;
-    custumers[_recipient].endDate = 0;
-    custumers[_recipient].locked = true;
-    emit NEWDEPOSIT(_recipient, _amount);
+    USDT.transferFrom(_investor, address(this), _amount);
+    _mint(_investor, _amount);
+    custumers[_investor].intitialDate = _now();
+    custumers[_investor].locked = true;
+    emit NEWDEPOSIT(_investor, _amount);
     return true;
   }
 
   function fundingNFT(uint tokenId) public onlyOwner returns (bool) {
     NFT = INFT_FACTORY(nftFactoryAddress);
     USDT = IERC20(usdtAddress);
-    ( , ,uint balanceAdvance, , ,) = NFT.getData(tokenId);
-    NFT.safeTransferFrom(NFT.ownerOf(tokenId), vaultNFTAddress, tokenId);
+    ( , ,uint balanceAdvance, , , ,) = NFT.getData(tokenId);
+    NFT.safeTransferFrom(NFT.ownerOf(tokenId), nftFactoryAddress, tokenId);
     USDT.transfer(NFT.ownerOf(tokenId), balanceAdvance);
+    return true;
+  }
+ 
+
+  function transferFunds(address investor) public onlyOwner returns(bool) {
+
+
+  }
+
+  function requestWithdraw(address investor, uint amount) public returns(bool) {
+    require(amount <= balanceOf(investor), "POOL: The amount that you try to request exceed your balance");
+    uint stakePeriod = _computeStakePeriod(_now(), custumers[investor].intitialDate, referencePeriod);
+    lenghtListOut  += 1;
+    custumers[investor].requestDate = numberList[lenghtListOut] = _now();
+    custumers[investor].stakePeriod = stakePeriod;
+    custumers[investor].pendingWithdraw = amount;
     return true;
   }
 
@@ -82,23 +100,25 @@ contract RUSD is ERC20, Ownable{
   }
 
 
-  /// @dev return true if is transfered succesfully investor's benefits
+  /// @dev return true if it is transfered succesfully investor's benefits. 
+  /// This function is called once by day after mintRewars().
   function stakeOf(address investor) public onlyOwner returns(bool) {
     uint balanceInvestor = balanceOf(investor);
     int128 ratioOf = ABDKMath64x64.div(ABDKMath64x64.fromUInt(balanceInvestor), ABDKMath64x64.fromUInt(totalSupply()));
-    uint valueToSend = ABDKMath64x64.mulu(ratioOf, balanceOf(nftFactoryAddress));
-    transferFrom(nftFactoryAddress, investor, valueToSend);
+    uint valueToSend = ABDKMath64x64.mulu(ratioOf, balanceOf(address(this)));
+    transfer(investor, valueToSend);
     return true;
   }
 
-  /// @dev return true if mint process is executed successfully
-  function mintRewards() private returns(bool) {
+  /// @dev return true if it mint process is executed successfully
+  /// This function is called once by day, before that stakeOf(address investor)
+  function mintRewards() public onlyOwner returns(bool) {
     uint amount = INFT_FACTORY(nftFactoryAddress).dailyInterestRUSD();
-    _mint(nftFactoryAddress, amount);
+    _mint(address(this), amount);
     return true;
   }
 
-  function _calculateStakingRange(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod) {
+  function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod) {
         require(_endDate != 0 && _startDate != 0 && ref != 0, "Error");
         uint stampTime = SafeMath.div( SafeMath.sub(_endDate, _startDate), 1 days);
         require(stampTime >= ref, "Pool: You have to need complete at least one stake period.");
@@ -112,5 +132,8 @@ contract RUSD is ERC20, Ownable{
         return stakePeriod;
     }
 
+    function _now() public view returns(uint) {
+      return block.timestamp;
+    }
   
 }

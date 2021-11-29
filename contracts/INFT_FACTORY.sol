@@ -7,6 +7,7 @@ interface INFT_FACTORY is IERC721 {
   function getData(uint256 tokenId) external view returns(string memory,
                                                           uint,
                                                           uint,
+                                                          uint,
                                                           int128,
                                                           int128,
                                                           address);
