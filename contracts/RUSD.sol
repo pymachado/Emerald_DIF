@@ -47,8 +47,8 @@ contract RUSD is ERC20, Ownable{
   event NEWDEPOSIT (address indexed recipient, uint amount);
 
   constructor (uint _minimumInvesting, address _nftFactoryAddress, address _usdtAddress) ERC20("RESERVA USD", "RUSD"){
-    require(_nftFactoryAddress.isContract() && _nftFactoryAddress != address(0), "POOL: Error");
-    require(_usdtAddress.isContract() && _usdtAddress != address(0), "POOL: Error");
+    require(_nftFactoryAddress.isContract() && _nftFactoryAddress != address(0), "POOL: Error 0");
+    require(_usdtAddress.isContract() && _usdtAddress != address(0), "POOL: Error 1");
     nftFactoryAddress = _nftFactoryAddress;
     usdtAddress = _usdtAddress;
     minimumInvesting =  _minimumInvesting;
@@ -59,7 +59,7 @@ contract RUSD is ERC20, Ownable{
   function deposit (address _investor, uint _amount) external returns (bool) {
     USDT = IERC20(usdtAddress);
     require(! _investor.isContract() && _investor != address(0), "POOL: Error");
-    require(_amount == minimumInvesting, "Pool: The minimum of investing exceed the amount");
+    require(_amount >= minimumInvesting, "Pool: The minimum of investing exceed the amount");
     USDT.transferFrom(_investor, address(this), _amount);
     _mint(_investor, _amount);
     custumers[_investor].intitialDate = _now();
@@ -93,19 +93,12 @@ contract RUSD is ERC20, Ownable{
     return true;
   }
 
-  function transfer(address recipient, uint256 amount) public override returns (bool) {
-    require(! custumers[recipient].locked, "POOL: Your transfer is locked");
-    super.transfer(recipient, amount);
-    return true;
-  }
-
 
   /// @dev return true if it is transfered succesfully investor's benefits. 
   /// This function is called once by day after mintRewars().
   function stakeOf(address investor) public onlyOwner returns(bool) {
-    uint balanceInvestor = balanceOf(investor);
-    int128 ratioOf = ABDKMath64x64.div(ABDKMath64x64.fromUInt(balanceInvestor), ABDKMath64x64.fromUInt(totalSupply()));
-    uint valueToSend = ABDKMath64x64.mulu(ratioOf, balanceOf(address(this)));
+    int128 _ratioOf = ABDKMath64x64.divu(balanceOf(investor), totalSupply()); 
+    uint valueToSend = ABDKMath64x64.mulu(_ratioOf, balanceOf(address(this)));
     transfer(investor, valueToSend);
     return true;
   }
@@ -118,6 +111,11 @@ contract RUSD is ERC20, Ownable{
     return true;
   }
 
+  function _now() public view returns(uint) {
+      return block.timestamp;
+    }
+
+    
   function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod) {
         require(_endDate != 0 && _startDate != 0 && ref != 0, "Error");
         uint stampTime = SafeMath.div( SafeMath.sub(_endDate, _startDate), 1 days);
@@ -132,8 +130,5 @@ contract RUSD is ERC20, Ownable{
         return stakePeriod;
     }
 
-    function _now() public view returns(uint) {
-      return block.timestamp;
-    }
   
 }

@@ -27,13 +27,14 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 
     struct DATA_INVOICE {
         string dataCustumer;
-        uint valueOfNFT;
-        uint balanceAdvance;
+        uint256 valueOfNFT;
+        uint256 balanceAdvance;
+        uint256 dateOverDue;
         int128 interestRate;
         int128 interestRateOverDue;
         address seller;
-        bytes32 invoiceHash;
     }
+
     
     DATA_INVOICE[] private _dataInvoices;
     
@@ -69,26 +70,15 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 
 /// @dev Mint a new NFT to recipient
 
-    function createInvoice(
-        address _recipient,
-        string memory _dataCustumer,
-        uint _valueOfNFT,
-        uint _balanceAdvance,
-        int128 _interestRate,
-        int128 _interestRateOverDue) external onlyOwner returns (bool) {            
-            bytes32 invoiceHash = keccak256(abi.encodePacked(_dataCustumer, _valueOfNFT, _balanceAdvance, _interestRate, _interestRateOverDue , _recipient)); 
+    function createInvoice(DATA_INVOICE memory _invoice) external onlyOwner returns (bool) {            
+            bytes32 invoiceHash = keccak256(abi.encodePacked(_invoice.dataCustumer,
+            _invoice.valueOfNFT, _invoice.balanceAdvance, _invoice.dateOverDue,
+            _invoice.interestRate, _invoice.interestRateOverDue, _invoice.seller )); 
             require(! _hashExist[invoiceHash], "NFT_Factory: This hash exist already");
             _hashExist[invoiceHash] = true;
-            uint256 newItemId = _assemble(
-                            _dataCustumer,
-                            _valueOfNFT,
-                            _balanceAdvance,                           
-                            _interestRate,
-                            _interestRateOverDue,
-                            _recipient,
-                            invoiceHash);
-            _mint(_recipient, newItemId);
-            _interestToMint(_interestRate, _valueOfNFT);
+            uint256 newItemId = _assemble(_invoice);
+            _mint(_invoice.seller, newItemId);
+            _interestToMint(_invoice.interestRate, _invoice.valueOfNFT);
             return true;
         
         }
@@ -103,10 +93,11 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 
 /// @dev Insert tokenId @param and the function @return all data attached at this token
 
-    function getData(uint256 tokenId) public view returns (string memory dataCustumer, uint valueOfNFT, uint balanceAdvance, int128 interestRate, int128 interestRateOverDue, address seller) {
+    function getData(uint256 tokenId) public view returns (string memory dataCustumer, uint valueOfNFT, uint balanceAdvance, uint dateOverDue, int128 interestRate, int128 interestRateOverDue, address seller) {
         dataCustumer = _dataInvoices[tokenId].dataCustumer;
         valueOfNFT = _dataInvoices[tokenId].valueOfNFT;
         balanceAdvance = _dataInvoices[tokenId].balanceAdvance;
+        dateOverDue = _dataInvoices[tokenId].dateOverDue;
         interestRate = _dataInvoices[tokenId].interestRate;
         interestRateOverDue = _dataInvoices[tokenId].interestRateOverDue;
         seller = _dataInvoices[tokenId].seller;
@@ -115,24 +106,11 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 
 /// @dev Private function to assemble one NFT and @return a single id for each token minted.
 
-    function _assemble( string memory _dataCustumer, 
-                        uint _valueOfNFT, 
-                        uint _balanceAdvance,
-                        int128 _interestRate,
-                        int128 _interestRateOverDue,
-                        address _seller, 
-                        bytes32 _invoiceHash) private returns(uint256) {
-                            _dataInvoices.push(DATA_INVOICE(
-                                _dataCustumer, 
-                                _valueOfNFT,
-                                _balanceAdvance,
-                                _interestRate,
-                                _interestRateOverDue,
-                                _seller,
-                                _invoiceHash));
-                        uint256 id = _dataInvoices.length - 1;
-                        return id;
-                       }
+    function _assemble( DATA_INVOICE memory _invoice) private returns(uint256) {
+        _dataInvoices.push(_invoice);
+        uint256 id = _dataInvoices.length - 1;
+        return id;
+        }
 
 
     // invoice interest rate = 1%,  interestRatioOfNFT = 0.01
