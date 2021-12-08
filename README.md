@@ -1,12 +1,12 @@
 # Emerald_DIF
 
 
-# POOL USDT/RUSD Smart Contract
-# Description
+## POOL USDT/RUSD Smart Contract
+### Description
  
- This contract save all deposits of USDT from investors and clients. It is the controller to mint new rewards in RUSD at its address and forwarder it to investors in relation with their stakings. Take part to fund the new funding request that entry and send at tenant his balance advance. 
+**This contract save all deposits of USDT from investors and clients. It is the controller to mint new rewards in RUSD at its address and forwarder it to investors in relation with their stakings. Take part to fund the new funding request that entry and send at tenant his balance advance.**
 
-# Declared functions  
+### Declared functions  
 
 function deposit(address _recipient, uint _amount) external returns(bool)
 
@@ -20,7 +20,7 @@ function mintRewards() public onlyOwner returns(bool)
 
 function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod)
 
-# Pending functions
+### Pending functions
  note: Pending to develop Withdraw Algorithm with list of withdraw system.
 
 1- requestWithdraw() by investor
@@ -29,35 +29,24 @@ function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure priv
 
 3- payNFT() by client
 
-# NFT_FACTORY Smart Contract
-# Description
+## NFT_FACTORY Smart Contract
+### Description
 
-This contract has two jobs, one is as a FACTORY; mint all new NFT from new funding request and attach for each NFT its tenant. It's important to register the person that will be done his debt payment once the NFT will be paid by its client. 
-The second job for this contract is as a Vault; the contract store all NFT that has been funding and when it is paid, contract burn the current token sending it to burn address.  
+**This contract has two jobs, one is as a FACTORY; mint all new NFT from new funding request and attach for each NFT its tenant. It's important to register the person that will be done his debt payment once the NFT will be paid by its client. The second job for this contract is as a Vault; the contract store all NFT that has been funding and when it is paid, contract burn the current token sending it to burn address.**  
 
-# Declared functions
+### Declared functions
 
-function createInvoice(
-        address _recipient,
-        string memory _dataCustumer,
-        uint _valueOfNFT,
-        uint _balanceAdvance,
-        uint _daysDue,
-        int128 _interestRate,
-        int128 _interestRateOverDue) external onlyOwner returns (bool)
+function createInvoice(DATA_INVOICE memory _invoice) external onlyOwner returns (bool)
 
 function destroyNFT(uint tokenId) external onlyOwner returns(bool)
 
 function getData(uint256 tokenId) public view returns (string memory dataCustumer, uint valueOfNFT, uint balanceAdvance, uint daysDue, int128 interestRate, int128 interestRateOverDue, address seller) 
 
-function _assemble( string memory _dataCustumer, 
-                        uint _valueOfNFT, 
-                        uint _balanceAdvance,
-                        uint _daysDue,
-                        int128 _interestRate,
-                        int128 _interestRateOverDue,
-                        address _seller, 
-                        bytes32 _invoiceHash) private returns(uint256)
+function interestToMintOverDue(uint tokenId) public onlyOwner returns(uint) 
+
+function _assemble( DATA_INVOICE memory _invoice) private returns(uint256) 
+
+function _interestToBurnOverDue(uint tokenId) private returns(uint)
 
 function _interestToMint(int128 _mir, uint _amount) private returns (uint)
 
