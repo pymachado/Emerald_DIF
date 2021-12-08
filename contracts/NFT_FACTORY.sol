@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 import "./ABDKMath64x64.sol";
 
 
@@ -80,13 +81,18 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
             _mint(_invoice.seller, newItemId);
             _interestToMint(_invoice.interestRate, _invoice.valueOfNFT);
             return true;
-        
         }
 ///@dev Burn one NFT when is paid and reduce of Fund's dailyInterest 
     function destroyNFT(uint tokenId) external onlyOwner returns(bool) {
         int128 mir = _dataInvoices[tokenId].interestRate;
         uint amount = _dataInvoices[tokenId].valueOfNFT;
-        _interestToBurn(mir, amount);(_dataInvoices[tokenId].interestRate);
+        uint dateOverDue = _dataInvoices[tokenId].dateOverDue;
+        if (_now() > dateOverDue) {
+            _interestToBurnOverDue(tokenId);
+        }
+        else {
+            _interestToBurn(mir, amount);
+        }
         transferFrom(address(this), burnAddress, tokenId);
         return true;
     }
@@ -112,9 +118,23 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
         return id;
         }
 
+    function interestToMintOverDue(uint tokenId) public onlyOwner returns(uint) {
+        ( , , , uint dateOverDue, int128 _mir, int128 _odmir,) = getData(tokenId);
+        if (dateOverDue > _now() && ownerOf(tokenId) != burnAddress) {
+            uint dir = ABDKMath64x64.mulu(_dir(_mir), 1*10**18);
+            uint oddir = ABDKMath64x64.mulu(_dir(_odmir), 1*10**18);
+            uint df = SafeMath.sub(oddir, dir);
+            dailyInterestRUSD = SafeMath.add(dailyInterestRUSD, df);
+        }
+        return dailyInterestRUSD;
+    }
 
-    // invoice interest rate = 1%,  interestRatioOfNFT = 0.01
-    // 
+    function _interestToBurnOverDue(uint tokenId) private returns(uint) {
+        ( , , , , , int128 _odmir,) = getData(tokenId);
+        uint oddir = ABDKMath64x64.mulu(_dir(_odmir), 1*10**18);
+        dailyInterestRUSD = SafeMath.sub(dailyInterestRUSD, oddir);
+        return dailyInterestRUSD;
+    } 
  
     function _interestToMint(int128 _mir, uint _amount) private returns (uint){
         uint newInterestToMint = ABDKMath64x64.mulu(_dir(_mir), _amount);
@@ -132,6 +152,10 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 
     function _air(int128 mir) pure private returns (int128) {
         return ABDKMath64x64.pow(ABDKMath64x64.add(ABDKMath64x64.fromUInt(1), mir), 12);
+    }
+
+    function _now() private view returns(uint) {
+        return block.timestamp;
     }
     
  

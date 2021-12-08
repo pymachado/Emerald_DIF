@@ -24,11 +24,6 @@ metadataStandard = {
             'client_country': "",
             'client_phone': "",
             'client_reserva_id': "",
-            'date_invoice': "",
-            'date_due': "",
-            'interest_rate': "",
-            'interest_rate_overdue': "",
-            'source_document': "",
             'invoice_request_reserva_id': ""
         },
 
