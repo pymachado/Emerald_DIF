@@ -76,7 +76,7 @@ contract RUSD is ERC20, Ownable{
     USDT.transfer(NFT.ownerOf(tokenId), balanceAdvance);
     return true;
   }
- 
+
 
   function transferFunds(address investor) public onlyOwner returns(bool) {
 

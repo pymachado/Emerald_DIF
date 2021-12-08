@@ -14,4 +14,6 @@ interface INFT_FACTORY is IERC721 {
 
   function dailyInterestRUSD() external view returns(uint);
 
+  function burnAddress() external view returns(address);
+
 }

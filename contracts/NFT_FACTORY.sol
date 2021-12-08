@@ -13,13 +13,12 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/math/SignedSafeMath.sol";
 import "./ABDKMath64x64.sol";
 
 
 contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
     uint public dailyInterestRUSD;
-    address constant burnAddress = 0x000000000000000000000000000000000000dEaD;
+    address constant public burnAddress = 0x000000000000000000000000000000000000dEaD;
     
 
 
@@ -27,7 +26,7 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
 /// @dev NFT's properties and validation system for each NFT minted. 
 
     struct DATA_INVOICE {
-        string dataCustumer;
+        bytes dataCustumer;
         uint256 valueOfNFT;
         uint256 balanceAdvance;
         uint256 dateOverDue;
@@ -39,8 +38,8 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
     
     DATA_INVOICE[] private _dataInvoices;
     
-    mapping (bytes32 => uint256) private _hashTokenId;
     mapping (bytes32 => bool) private _hashExist;
+    mapping (uint => bool) private _tokenOverDues;
 
     event RATIOCHANGED(int128 indexed newRatio);
 
@@ -82,8 +81,53 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
             _interestToMint(_invoice.interestRate, _invoice.valueOfNFT);
             return true;
         }
-///@dev Burn one NFT when is paid and reduce of Fund's dailyInterest 
-    function destroyNFT(uint tokenId) external onlyOwner returns(bool) {
+
+    function payNFT(uint tokenId) external returns(bool) {
+        require(tokenId != 0 && ownerOf(tokenId) != burnAddress);
+        //split amount to different parts
+        _destroyNFT(tokenId);
+        return true;
+    }
+
+    function interestToMintOverDue(uint tokenId) public onlyOwner returns(uint) {
+        require(! _tokenOverDues[tokenId], "NFT_Factory: Token already added to dailyInterestRUSD" );
+        _tokenOverDues[tokenId] = true;
+        ( , , , uint dateOverDue, int128 _mir, int128 _odmir,) = getData(tokenId);
+        if (dateOverDue > _now() && ownerOf(tokenId) != burnAddress) {
+            uint dir = ABDKMath64x64.mulu(_dir(_mir), 1*10**18);
+            uint oddir = ABDKMath64x64.mulu(_dir(_odmir), 1*10**18);
+            uint df = SafeMath.sub(oddir, dir);
+            dailyInterestRUSD = SafeMath.add(dailyInterestRUSD, df);
+        }
+        return dailyInterestRUSD;
+    }
+
+
+/// @dev Insert tokenId @param and the function @return all data attached at this token
+
+    function getData(uint256 tokenId) public view returns (string memory dataCustumer, uint valueOfNFT, uint balanceAdvance, uint dateOverDue, int128 interestRate, int128 interestRateOverDue, address seller) {
+        bytes memory data = _dataInvoices[tokenId].dataCustumer;
+        string memory _dataCustumer = abi.decode(data, (string));
+        dataCustumer = _dataCustumer;
+        valueOfNFT = _dataInvoices[tokenId].valueOfNFT;
+        balanceAdvance = _dataInvoices[tokenId].balanceAdvance;
+        dateOverDue = _dataInvoices[tokenId].dateOverDue;
+        interestRate = _dataInvoices[tokenId].interestRate;
+        interestRateOverDue = _dataInvoices[tokenId].interestRateOverDue;
+        seller = _dataInvoices[tokenId].seller;
+    }
+
+    function get_tokenOverDue(uint tokenId) public view returns(bool) {
+        return _tokenOverDues[tokenId];
+    }  
+
+/// @dev Private function to assemble one NFT and @return a single id for each token minted.
+
+
+    //@dev Burn one NFT when is paid and reduce of Fund's dailyInterest 
+    
+    function _destroyNFT(uint tokenId) private returns(bool) {
+        require(ownerOf(tokenId) != burnAddress, "NFT_Factory: Token already burned");
         int128 mir = _dataInvoices[tokenId].interestRate;
         uint amount = _dataInvoices[tokenId].valueOfNFT;
         uint dateOverDue = _dataInvoices[tokenId].dateOverDue;
@@ -94,40 +138,15 @@ contract NFT_FACTORY is ERC721, Ownable, ERC721Enumerable, IERC721Receiver {
             _interestToBurn(mir, amount);
         }
         transferFrom(address(this), burnAddress, tokenId);
+        if (_tokenOverDues[tokenId]) {delete _tokenOverDues[tokenId];}
         return true;
     }
-
-/// @dev Insert tokenId @param and the function @return all data attached at this token
-
-    function getData(uint256 tokenId) public view returns (string memory dataCustumer, uint valueOfNFT, uint balanceAdvance, uint dateOverDue, int128 interestRate, int128 interestRateOverDue, address seller) {
-        dataCustumer = _dataInvoices[tokenId].dataCustumer;
-        valueOfNFT = _dataInvoices[tokenId].valueOfNFT;
-        balanceAdvance = _dataInvoices[tokenId].balanceAdvance;
-        dateOverDue = _dataInvoices[tokenId].dateOverDue;
-        interestRate = _dataInvoices[tokenId].interestRate;
-        interestRateOverDue = _dataInvoices[tokenId].interestRateOverDue;
-        seller = _dataInvoices[tokenId].seller;
-    }
-
-
-/// @dev Private function to assemble one NFT and @return a single id for each token minted.
 
     function _assemble( DATA_INVOICE memory _invoice) private returns(uint256) {
         _dataInvoices.push(_invoice);
         uint256 id = _dataInvoices.length - 1;
         return id;
         }
-
-    function interestToMintOverDue(uint tokenId) public onlyOwner returns(uint) {
-        ( , , , uint dateOverDue, int128 _mir, int128 _odmir,) = getData(tokenId);
-        if (dateOverDue > _now() && ownerOf(tokenId) != burnAddress) {
-            uint dir = ABDKMath64x64.mulu(_dir(_mir), 1*10**18);
-            uint oddir = ABDKMath64x64.mulu(_dir(_odmir), 1*10**18);
-            uint df = SafeMath.sub(oddir, dir);
-            dailyInterestRUSD = SafeMath.add(dailyInterestRUSD, df);
-        }
-        return dailyInterestRUSD;
-    }
 
     function _interestToBurnOverDue(uint tokenId) private returns(uint) {
         ( , , , , , int128 _odmir,) = getData(tokenId);
