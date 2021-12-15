@@ -43,6 +43,7 @@ contract RUSD is ERC20, Ownable{
   mapping (address => CUSTUMER) public custumers;
   // key is investor's numberList and value is requestDate 
   mapping (uint32 => uint) public numberList;
+  mapping (uint => bool) private _existRquest;
 
   event NEWDEPOSIT (address indexed recipient, uint amount);
 
@@ -84,13 +85,7 @@ contract RUSD is ERC20, Ownable{
   }
 
   function requestWithdraw(address investor, uint amount) public returns(bool) {
-    require(amount <= balanceOf(investor), "POOL: The amount that you try to request exceed your balance");
-    uint stakePeriod = _computeStakePeriod(_now(), custumers[investor].intitialDate, referencePeriod);
-    lenghtListOut  += 1;
-    custumers[investor].requestDate = numberList[lenghtListOut] = _now();
-    custumers[investor].stakePeriod = stakePeriod;
-    custumers[investor].pendingWithdraw = amount;
-    return true;
+    
   }
 
 
@@ -116,7 +111,7 @@ contract RUSD is ERC20, Ownable{
     }
 
     
-  function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod) {
+  function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure private returns (uint stakePeriod, uint remainingTime) {
         require(_endDate != 0 && _startDate != 0 && ref != 0, "Error");
         uint stampTime = SafeMath.div( SafeMath.sub(_endDate, _startDate), 1 days);
         require(stampTime >= ref, "Pool: You have to need complete at least one stake period.");
@@ -127,8 +122,10 @@ contract RUSD is ERC20, Ownable{
         else {
             stakePeriod = stampTime;
         }   
-        return stakePeriod;
+        return (stakePeriod, ref - r);
     }
+
+    
 
   
 }
