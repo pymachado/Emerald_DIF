@@ -27,8 +27,6 @@ function _computeStakePeriod(uint _endDate, uint _startDate, uint ref) pure priv
 
 2- transferFunds() by Reserva
 
-3- payNFT() by client
-
 ## NFT_FACTORY Smart Contract
 ### Description
 
