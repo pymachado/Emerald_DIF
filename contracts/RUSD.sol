@@ -35,8 +35,6 @@ contract RUSD is ERC20, Ownable{
     uint requestDate;
     uint returnDate;
     uint stakePeriod;
-    uint pendingWithdraw;
-    bool locked;
     bool isWithdrawal;
   }
 
@@ -66,7 +64,6 @@ contract RUSD is ERC20, Ownable{
     USDT.transferFrom(_investor, address(this), _amount);
     _mint(_investor, _amount);
     custumers[_investor].intitialDate = _now();
-    custumers[_investor].locked = true;
     emit NEWDEPOSIT(_investor, _amount);
     return true;
   }
@@ -81,24 +78,24 @@ contract RUSD is ERC20, Ownable{
   }
 
 
-  function transferFunds(address investor) public onlyOwner returns(bool) {
+  function transferFunds(address investor, uint amount) public onlyOwner returns(bool) {
     USDT = IERC20(usdtAddress);
     require(numberList[0] != address(0), "POOL: List is out");
     require(numberList[0] == investor, "POOL: This investor is not the first in the list");
-    require(USDT.balanceOf(address(this)) >= balanceOf(investor), "POOL: There's no funds enough");
+    require(balanceOf(investor) >= amount, "You don't have enough funds.");
+    require(USDT.balanceOf(address(this)) >= amount, "POOL: There's no funds enough");
     uint range = 0;
     while (numberList[range] != address(0)) {
       range++;
     }
 
-    for (uint i = 0; i <= range; i++) {
+    for (uint i = 0; i < range; i++) {
       numberList[i] = numberList[i+1];
       range--;
     }
-    
-    uint balanceRUSD = balanceOf(investor);
-    USDT.transfer(investor, balanceRUSD);
-    _burn(investor, balanceRUSD);
+
+    USDT.transfer(investor, amount);
+    _burn(investor, amount);
     return true;
   }
 
