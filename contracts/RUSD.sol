@@ -84,9 +84,13 @@ contract RUSD is ERC20, Ownable{
     require(numberList[0] == investor, "POOL: This investor is not the first in the list");
     require(balanceOf(investor) >= amount, "You don't have enough funds.");
     require(USDT.balanceOf(address(this)) >= amount, "POOL: There's no funds enough");
+    
     uint range = 0;
     while (numberList[range] != address(0)) {
       range++;
+      if (range >= numberList.length) {
+        break;
+      }
     }
 
     for (uint i = 0; i < range; i++) {
