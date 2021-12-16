@@ -42,7 +42,7 @@ contract RUSD is ERC20, Ownable{
 
   mapping (address => CUSTUMER) public custumers;
   // key is investor's numberList and value is requestDate 
-  address[] numberList;
+  address[100] numberList;
   mapping (uint => uint) private _dateOuts;
   
   mapping (uint => bool) private _existRquest;
@@ -86,14 +86,20 @@ contract RUSD is ERC20, Ownable{
     require(numberList[0] != address(0), "POOL: List is out");
     require(numberList[0] == investor, "POOL: This investor is not the first in the list");
     require(USDT.balanceOf(address(this)) >= balanceOf(investor), "POOL: There's no funds enough");
-    for (uint i = 0; i <= numberList.length - 1; i++) {
-      numberList[i] = numberList[i+1];
+    uint range = 0;
+    while (numberList[range] != address(0)) {
+      range++;
     }
+
+    for (uint i = 0; i <= range; i++) {
+      numberList[i] = numberList[i+1];
+      range--;
+    }
+    
     uint balanceRUSD = balanceOf(investor);
     USDT.transfer(investor, balanceRUSD);
     _burn(investor, balanceRUSD);
     return true;
-
   }
 
   function requestWithdraw(address investor, uint amount) public returns(bool) {
